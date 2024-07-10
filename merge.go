@@ -6,10 +6,45 @@ import (
 	"log"
 )
 
-// MergePatch applies a JSON Merge Patch to a target document.
-func MergePatch(target, patch []byte) ([]byte, error) {
-	var targetMap map[string]interface{}
-	var patchMap map[string]interface{}
+// Patcher defines an interface for patching JSON documents.
+type Patcher interface {
+	Patch(target, patch map[string]interface{}) map[string]interface{}
+}
+
+// MergePatcher implements the Patcher interface for JSON Merge Patch.
+type MergePatcher struct{}
+
+// Patch applies the merge patch to the target document.
+func (p *MergePatcher) Patch(target, patch map[string]interface{}) map[string]interface{} {
+	for key, patchValue := range patch {
+		if patchValue == nil {
+			delete(target, key)
+		} else {
+			if targetValue, ok := target[key].(map[string]interface{}); ok {
+				if patchValueMap, ok := patchValue.(map[string]interface{}); ok {
+					target[key] = p.Patch(targetValue, patchValueMap)
+					continue
+				}
+			}
+			target[key] = patchValue
+		}
+	}
+	return target
+}
+
+// JSONMerger handles merging JSON documents using the provided Patcher strategy.
+type JSONMerger struct {
+	patcher Patcher
+}
+
+// NewJSONMerger creates a new JSONMerger with the given Patcher strategy.
+func NewJSONMerger(patcher Patcher) *JSONMerger {
+	return &JSONMerger{patcher: patcher}
+}
+
+// Merge applies the patch to the target JSON document.
+func (m *JSONMerger) Merge(target, patch []byte) ([]byte, error) {
+	var targetMap, patchMap map[string]interface{}
 
 	if err := json.Unmarshal(target, &targetMap); err != nil {
 		return nil, fmt.Errorf("error unmarshalling target: %w", err)
@@ -19,53 +54,6 @@ func MergePatch(target, patch []byte) ([]byte, error) {
 		return nil, fmt.Errorf("error unmarshalling patch: %w", err)
 	}
 
-	mergedMap := applyPatch(targetMap, patchMap)
-
+	mergedMap := m.patcher.Patch(targetMap, patchMap)
 	return json.Marshal(mergedMap)
-}
-
-// applyPatch applies the patch map to the target map, handling nested maps.
-func applyPatch(targetMap, patchMap map[string]interface{}) map[string]interface{} {
-	for key, patchValue := range patchMap {
-		if patchValue == nil {
-			delete(targetMap, key)
-		} else {
-			// If both target and patch values are maps, recursively apply patch
-			if targetValue, ok := targetMap[key].(map[string]interface{}); ok {
-				if patchValueMap, ok := patchValue.(map[string]interface{}); ok {
-					targetMap[key] = applyPatch(targetValue, patchValueMap)
-					continue
-				}
-			}
-			// Otherwise, just set the patch value
-			targetMap[key] = patchValue
-		}
-	}
-	return targetMap
-}
-
-func main() {
-	original := []byte(`{
-		"name": "John",
-		"age": 24,
-		"address": {
-			"city": "New York",
-			"zipcode": "10001"
-		},
-		"skills": ["Go", "Python"]
-	}`)
-	patch := []byte(`{
-		"name": "Jane",
-		"address": {
-			"zipcode": "10002"
-		},
-		"skills": null
-	}`)
-
-	modified, err := MergePatch(original, patch)
-	if err != nil {
-		log.Fatalf("Error applying merge patch: %v", err)
-	}
-
-	fmt.Printf("Modified document: %s\n", modified)
 }
