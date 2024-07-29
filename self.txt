@@ -1,0 +1,27 @@
+Technical Enhancements and Feature Delivery
+Validations on Decimal Places for P2P Transactions:
+
+Implemented validations for decimal places on all amounts in P2P transaction APIs.
+Managed the task end-to-end, including development, testing, and cross-team collaboration with the dev-ex team for documentation updates.
+Banking Transfer Writes Removal:
+
+Removed banking transfer writes in the database.
+Introduced a banking write feature flag to enable/disable banking writes at runtime, enhancing task flexibility and control.
+Performance Optimization
+DB Query Optimization for Last Authorization API:
+Worked on optimizing the "get last authorization" API query.
+Identified limitations due to excessive indexes on the authorizations table, impacting write performance.
+Implemented a caching solution with a TTL of 10 minutes based on read patterns, significantly improving performance (reduced p99 from 2-3 seconds to 150ms).
+Dedicated effort to performance enhancement led to better API results.
+API and Endpoint Development
+Creation of PATCH Endpoints for Payment-Configs Routes:
+Evaluated configurations and determined the need for a design document.
+Explored multiple strategies (e.g., JSON patch and merge) and finalized on JSON merge based on use cases.
+Designed a mature product by addressing edge cases early and writing a comprehensive design document.
+Approach to designing new features was accepted and implemented within the team.
+Process Improvement and Problem Solving
+Authorization Status Check in Installments API:
+Thoroughly reviewed the flow to understand the need for skipping authorization status checks.
+Executed a POC by creating a blocked account status in an external environment.
+Added necessary changes to ledger API calls based on POC results.
+Demonstrated the value of running POCs for gaining confidence in task execution.
